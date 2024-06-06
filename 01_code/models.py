@@ -313,8 +313,13 @@ def deepquantreg_loss(y_pred, y_true, cen_indicator, global_kmf_torch_batch, tau
 	weights_block = weights.repeat((1, n_quantiles-1)) 
 	# Repeat the weights tensor (1 time along the first dim,) (n_quantiles-1) times along the second dimension (batch_size, n_quatiles-1).
 	tau_block = taus_torch.repeat((cen_indicator.shape[0],1))
-	# Repeat the taus_torch tensor cen_indicator.shape[0] times along the first dimension and 1 time along the second dimension. 
+	# Repeat the taus_torch tensor cen_indicator.shape[0] times along the first dimension and 1 time along the second dimension (the number of quantiles). 
 
+	# weights_block: (batch_size, n_quantiles-1)
+	# (cen_indicator<1): (batch_size, 1), broadcast to (batch_size, n_quantiles-1) when doing multiplication.
+	# y_pred, y_true: (batch_size, n_quantiles-1)
+	# ((1-tau_block[:,:-1])-1.*(y_pred[:,:-1]<y_true)): (batch_size, n_quantiles-1)
+	# loss: sum along dim=1, then the shape of loss is (batch_size,)
 	loss = torch.sum(weights_block*(cen_indicator<1)*(y_pred[:,:-1]  - y_true)*((1-tau_block[:,:-1])-1.*(y_pred[:,:-1]<y_true)),dim=1)
 	loss = torch.mean(loss) 
 
