@@ -310,8 +310,10 @@ def deepquantreg_loss(y_pred, y_true, cen_indicator, global_kmf_torch_batch, tau
 
 	# for vectorised form, we need weights to be in shape (batch_size x n_quantiles-1)
 	# note the weights don't change by the quantile
-	weights_block = weights.repeat((1, n_quantiles-1))
+	weights_block = weights.repeat((1, n_quantiles-1)) 
+	# Repeat the weights tensor (1 time along the first dim,) (n_quantiles-1) times along the second dimension (batch_size, n_quatiles-1).
 	tau_block = taus_torch.repeat((cen_indicator.shape[0],1))
+	# Repeat the taus_torch tensor cen_indicator.shape[0] times along the first dimension and 1 time along the second dimension. 
 
 	loss = torch.sum(weights_block*(cen_indicator<1)*(y_pred[:,:-1]  - y_true)*((1-tau_block[:,:-1])-1.*(y_pred[:,:-1]<y_true)),dim=1)
 	loss = torch.mean(loss) 
