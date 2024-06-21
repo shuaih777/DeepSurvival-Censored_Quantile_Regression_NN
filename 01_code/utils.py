@@ -83,9 +83,10 @@ def quantile_compare_fn(x, y_preds_in, mydataset, taus, q=0.9):
 	# compare true quantile vs predicted quantile using MSE
 	# this is TQMSE in paper
 	# y_preds_in is 2D array (n_samples, n_taus)
+	# taus: taus = np.linspace(1/n_quantiles,1,n_quantiles) in script_exp.py line 123.
 
 	# find index of quantile which is closest to target
-	idx = np.argmin(np.abs(taus-q))
+	idx = np.argmin(np.abs(taus-q)) # taus_assess = [0.1,0.5,0.9] (script_exp.py line 124), but the estimation may not have 0.9 quantile estimate, may have 0.917.
 	eps = 1e-3
 	if np.abs(taus[idx] - q) > eps:
 		print('\nmaybe an error, asked for quantile ',q,' only have',taus[idx], 'available')
@@ -124,7 +125,7 @@ def compute_metrics(x_in, y_preds, y_true, cen_indicator, obs_indicator, mydatas
 	metrics['cindex_median'] = concordance_index(y_true, median_pred, obs_indicator)
 	if mydataset.synth_target==True:
 		metrics['q_metric_avg'] = np.mean([quantile_compare_fn(x_in, y_preds, mydataset, taus, q) for q in taus[:-1]])
-		metrics['q_metric_selected'] = np.mean([quantile_compare_fn(x_in, y_preds, mydataset, taus, q) for q in taus_assess])
+		metrics['q_metric_selected'] = np.mean([quantile_compare_fn(x_in, y_preds, mydataset, taus, q) for q in taus_assess]) # taus_assess = [0.1,0.5,0.9] (script_exp.py line 124)
 		metrics['TQMSE'] = metrics['q_metric_selected']
 
 	# calibration plots
@@ -158,11 +159,11 @@ def compute_metrics(x_in, y_preds, y_true, cen_indicator, obs_indicator, mydatas
 	# now D-calibration for censored data
 	# X-CAL: Explicit calibration for survival analysis, eq 9 and 10
 	# for each data point, find predicted quantile
-	diffs = y_preds[:,:-1] - np.expand_dims(y_true,axis=1)
-	closest_q_idx = np.argmin(np.abs(diffs),axis=1)
+	diffs = y_preds[:,:-1] - np.expand_dims(y_true,axis=1) # [n_samples] into a 2D array (shape [n_samples, 1]) then broadcasting 
+	closest_q_idx = np.argmin(np.abs(diffs),axis=1) # idx of min of each row ([n_samples])
 	closest_q = []
 	for i in range(y_true.shape[0]):
-		closest_q.append(taus[closest_q_idx[i]])
+		closest_q.append(taus[closest_q_idx[i]]) # which quantile: the estimate of this quantile is closest to the truth.
 	closest_q=np.array(closest_q)
 
 	# for each bin
@@ -205,6 +206,7 @@ def compute_metrics(x_in, y_preds, y_true, cen_indicator, obs_indicator, mydatas
 		
 	dcal_data_cens = np.array(dcal_data_cens)
 
+	# MSE
 	metrics['Dcal_cens'] = 100*np.sum(np.square(dcal_data_cens[:,0]-dcal_data_cens[:,1]))  # this is CensDCal from paper
 	# metrics['Dcal_cens'] = 100*np.sum(np.square(dcal_data_cens[:-1,0]-dcal_data_cens[:-1,1]))
 	metrics['Dcal_cens_data'] = dcal_data_cens
